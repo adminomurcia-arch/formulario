@@ -1,4 +1,4 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -181,20 +181,17 @@
 
     <div class="sys-error" id="sysError"></div>
 
-    <!-- CÓDIGO -->
     <div class="field">
       <label>Código <span class="req">*</span></label>
       <input type="text" id="codigo" placeholder="Ej: 001" autocomplete="off" inputmode="text">
       <span class="hint" id="hint-codigo"></span>
     </div>
 
-    <!-- NOMBRE -->
     <div class="field">
       <label>Nombre</label>
       <input type="text" id="nombre" readonly placeholder="Se rellena automáticamente">
     </div>
 
-    <!-- TRACTORA -->
     <div class="field">
       <label>Tractora <span class="req">*</span></label>
       <select id="tractora">
@@ -203,7 +200,6 @@
       <span class="hint info" id="hint-tractora"></span>
     </div>
 
-    <!-- FECHAS -->
     <div class="row">
       <div class="field">
         <label>Fecha inicio <span class="req">*</span></label>
@@ -215,13 +211,11 @@
       </div>
     </div>
 
-    <!-- DONDE -->
     <div class="field">
       <label>Donde <span class="req">*</span></label>
       <input type="text" id="donde" placeholder="Ubicación o lugar del trabajo">
     </div>
 
-    <!-- REGLAMENTARIO -->
     <div class="field">
       <label>Reglamentario <span class="req">*</span></label>
       <div class="radio-group">
@@ -248,26 +242,16 @@
   //  ⚠️  CAMBIA ESTA URL por la de tu Apps Script publicado
   //  Formato: https://script.google.com/macros/s/XXXX/exec
   // ══════════════════════════════════════════════════════════
-  var API_URL = "https://script.google.com/macros/s/AKfycbxlW6G5-POllR9SosCcKg3jnAHsWqpaFqfnn0u-Me6CmnnszfvDpdLXsuAtil5lPbsz/exec";
+  var API_URL = "https://script.google.com/macros/s/AKfycbwq83ImGryxnp_W6A3DyXDVgiLgNpwCukiOrTQmhdq-QRS-y7fFadw8H_BM12eT_oUZ/exec";
 
-
-  // ── Llamada a la API ──────────────────────────────────────
+  // ── Llamada GET a la API ──────────────────────────────────
   function apiGet(params) {
-    var url = API_URL + "?" + Object.keys(params)
-      .map(function(k){ return k + "=" + encodeURIComponent(params[k]); })
+    var qs = Object.keys(params)
+      .map(function(k) { return k + "=" + encodeURIComponent(params[k]); })
       .join("&");
-    return fetch(url, { redirect: "follow" }).then(function(r){ return r.json(); });
+    return fetch(API_URL + "?" + qs, { redirect: "follow" })
+      .then(function(r) { return r.json(); });
   }
-
-  function apiPost(datos) {
-    return fetch(API_URL, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(datos),
-      redirect: "follow"
-    }).then(function(r){ return r.json(); });
-  }
-
 
   // ── Cargar matrículas al arrancar ─────────────────────────
   apiGet({ action: "matriculas" })
@@ -289,24 +273,22 @@
       });
 
       hint.textContent = res.lista.length + " matrícula(s) cargada(s)";
-      setTimeout(function(){ hint.textContent = ""; }, 3000);
+      setTimeout(function() { hint.textContent = ""; }, 3000);
     })
     .catch(function(err) {
       document.getElementById("tractora").innerHTML = '<option value="">Sin conexión</option>';
-      mostrarSysError("No se pudo conectar con el servidor: " + err.message);
+      mostrarSysError("No se pudo conectar: " + err.message);
     });
 
-
-  // ── Fecha final siempre > fecha inicial ──────────────────
+  // ── Fecha final siempre > fecha inicial ───────────────────
   document.getElementById("fechaInicio").addEventListener("change", function() {
-    var fi  = document.getElementById("fechaFinal");
-    fi.min  = this.value;                      // bloquea fechas anteriores
-    if (fi.value && fi.value < this.value) {   // si ya había una fecha menor, la borra
+    var fi = document.getElementById("fechaFinal");
+    fi.min = this.value;
+    if (fi.value && fi.value < this.value) {
       fi.value = "";
       toast("La fecha final se ha borrado porque era anterior al inicio", "error");
     }
   });
-
 
   // ── Autocomplete CÓDIGO → NOMBRE ─────────────────────────
   var timeoutBusqueda;
@@ -346,13 +328,12 @@
             hint.className   = "hint err";
           }
         })
-        .catch(function(err) {
+        .catch(function() {
           hint.textContent = "⚠ Sin conexión";
           hint.className   = "hint err";
         });
     }, 400);
   });
-
 
   // ── Enviar formulario ────────────────────────────────────
   function enviarFormulario() {
@@ -377,10 +358,15 @@
     btn.disabled    = true;
     btn.textContent = "Enviando…";
 
-    apiPost({
-      codigo: codigo, nombre: nombre, tractora: tractora,
-      fechaInicio: fechaInicio, fechaFinal: fechaFinal,
-      donde: donde, reglamentario: reglRadio.value
+    apiGet({
+      action:         "guardar",
+      codigo:         codigo,
+      nombre:         nombre,
+      tractora:       tractora,
+      fechaInicio:    fechaInicio,
+      fechaFinal:     fechaFinal,
+      donde:          donde,
+      reglamentario:  reglRadio.value
     })
     .then(function(res) {
       btn.disabled    = false;
@@ -399,15 +385,14 @@
     });
   }
 
-
   // ── Limpiar ───────────────────────────────────────────────
   function limpiarFormulario() {
-    ["codigo","nombre","fechaInicio","fechaFinal","donde"].forEach(function(id){
+    ["codigo","nombre","fechaInicio","fechaFinal","donde"].forEach(function(id) {
       document.getElementById(id).value = "";
     });
     document.getElementById("tractora").value = "";
     document.querySelectorAll('input[name="reglamentario"]')
-            .forEach(function(r){ r.checked = false; });
+            .forEach(function(r) { r.checked = false; });
     document.getElementById("hint-codigo").textContent = "";
     document.getElementById("hint-codigo").className  = "hint";
   }
@@ -422,7 +407,7 @@
     var t = document.getElementById("toast");
     t.textContent = msg;
     t.className   = "toast show " + (tipo || "");
-    setTimeout(function(){ t.className = "toast"; }, 3500);
+    setTimeout(function() { t.className = "toast"; }, 3500);
   }
 </script>
 </body>
