@@ -1,0 +1,429 @@
+<<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REGISTRO DIAS PARADOS</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.10);
+    width: 100%;
+    max-width: 520px;
+    overflow: hidden;
+  }
+
+  .header {
+    background: #25D366;
+    padding: 28px 32px 22px;
+    color: #fff;
+  }
+  .header h1 { font-size: 1.4rem; font-weight: 700; }
+  .header p  { font-size: .85rem; opacity: .85; margin-top: 4px; }
+
+  .form-body {
+    padding: 28px 32px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  label {
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    color: #555;
+    text-transform: uppercase;
+  }
+  label .req { color: #e53935; margin-left: 2px; }
+
+  input, select {
+    padding: 11px 14px;
+    border: 1.5px solid #dde1e7;
+    border-radius: 10px;
+    font-size: .97rem;
+    color: #222;
+    transition: border .2s, box-shadow .2s;
+    background: #fafafa;
+    width: 100%;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #25D366;
+    box-shadow: 0 0 0 3px rgba(37,211,102,.15);
+    background: #fff;
+  }
+  input[readonly] {
+    background: #f0faf4;
+    color: #1a7f45;
+    font-weight: 600;
+    cursor: default;
+  }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 400px) { .row { grid-template-columns: 1fr; } }
+
+  .hint { font-size: .78rem; color: #999; margin-top: 2px; min-height: 16px; }
+  .hint.ok   { color: #1a7f45; }
+  .hint.err  { color: #e53935; }
+  .hint.info { color: #1565c0; }
+
+  .radio-group { display: flex; gap: 12px; }
+  .radio-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px;
+    border: 1.5px solid #dde1e7;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: .95rem;
+    font-weight: 600;
+    color: #555;
+    transition: all .2s;
+    background: #fafafa;
+    user-select: none;
+  }
+  .radio-btn input[type="radio"] { display: none; }
+  .radio-btn.si:has(input:checked) {
+    border-color: #25D366;
+    background: #f0faf4;
+    color: #1a7f45;
+    box-shadow: 0 0 0 3px rgba(37,211,102,.15);
+  }
+  .radio-btn.no:has(input:checked) {
+    border-color: #e53935;
+    background: #fff5f5;
+    color: #c62828;
+    box-shadow: 0 0 0 3px rgba(229,57,53,.12);
+  }
+
+  .btn-submit {
+    background: #25D366;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s, transform .1s;
+    margin-top: 4px;
+    width: 100%;
+  }
+  .btn-submit:hover    { background: #1ebe5d; }
+  .btn-submit:active   { transform: scale(.98); }
+  .btn-submit:disabled { background: #a8e6c1; cursor: not-allowed; }
+
+  .sys-error {
+    background: #fff3f3;
+    border: 1.5px solid #e53935;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: .85rem;
+    color: #c62828;
+    display: none;
+  }
+  .sys-error.show { display: block; }
+
+  .toast {
+    display: none;
+    position: fixed;
+    bottom: 28px; left: 50%;
+    transform: translateX(-50%);
+    background: #222;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: .9rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    z-index: 999;
+    white-space: nowrap;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show    { display: block; animation: fadeUp .3s; }
+  .toast.success { background: #1a7f45; }
+  .toast.error   { background: #c62828; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateX(-50%) translateY(10px); }
+    to   { opacity:1; transform: translateX(-50%) translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>REGISTRO DIAS PARADOS</h1>
+    <p>Completa todos los campos obligatorios</p>
+  </div>
+
+  <div class="form-body">
+
+    <div class="sys-error" id="sysError"></div>
+
+    <!-- CÓDIGO -->
+    <div class="field">
+      <label>Código <span class="req">*</span></label>
+      <input type="text" id="codigo" placeholder="Ej: 001" autocomplete="off" inputmode="text">
+      <span class="hint" id="hint-codigo"></span>
+    </div>
+
+    <!-- NOMBRE -->
+    <div class="field">
+      <label>Nombre</label>
+      <input type="text" id="nombre" readonly placeholder="Se rellena automáticamente">
+    </div>
+
+    <!-- TRACTORA -->
+    <div class="field">
+      <label>Tractora <span class="req">*</span></label>
+      <select id="tractora">
+        <option value="">Cargando matrículas…</option>
+      </select>
+      <span class="hint info" id="hint-tractora"></span>
+    </div>
+
+    <!-- FECHAS -->
+    <div class="row">
+      <div class="field">
+        <label>Fecha inicio <span class="req">*</span></label>
+        <input type="datetime-local" id="fechaInicio">
+      </div>
+      <div class="field">
+        <label>Fecha final <span class="req">*</span></label>
+        <input type="datetime-local" id="fechaFinal">
+      </div>
+    </div>
+
+    <!-- DONDE -->
+    <div class="field">
+      <label>Donde <span class="req">*</span></label>
+      <input type="text" id="donde" placeholder="Ubicación o lugar del trabajo">
+    </div>
+
+    <!-- REGLAMENTARIO -->
+    <div class="field">
+      <label>Reglamentario <span class="req">*</span></label>
+      <div class="radio-group">
+        <label class="radio-btn si">
+          <input type="radio" name="reglamentario" value="SI"> ✅ SÍ
+        </label>
+        <label class="radio-btn no">
+          <input type="radio" name="reglamentario" value="NO"> ❌ NO
+        </label>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="btnEnviar" onclick="enviarFormulario()">
+      Enviar registro
+    </button>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ══════════════════════════════════════════════════════════
+  //  ⚠️  CAMBIA ESTA URL por la de tu Apps Script publicado
+  //  Formato: https://script.google.com/macros/s/XXXX/exec
+  // ══════════════════════════════════════════════════════════
+  var API_URL = "https://script.google.com/macros/s/AKfycbxlW6G5-POllR9SosCcKg3jnAHsWqpaFqfnn0u-Me6CmnnszfvDpdLXsuAtil5lPbsz/exec";
+
+
+  // ── Llamada a la API ──────────────────────────────────────
+  function apiGet(params) {
+    var url = API_URL + "?" + Object.keys(params)
+      .map(function(k){ return k + "=" + encodeURIComponent(params[k]); })
+      .join("&");
+    return fetch(url, { redirect: "follow" }).then(function(r){ return r.json(); });
+  }
+
+  function apiPost(datos) {
+    return fetch(API_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(datos),
+      redirect: "follow"
+    }).then(function(r){ return r.json(); });
+  }
+
+
+  // ── Cargar matrículas al arrancar ─────────────────────────
+  apiGet({ action: "matriculas" })
+    .then(function(res) {
+      var sel  = document.getElementById("tractora");
+      var hint = document.getElementById("hint-tractora");
+
+      if (!res.ok) {
+        sel.innerHTML = '<option value="">Error al cargar</option>';
+        mostrarSysError("Matrículas: " + res.error);
+        return;
+      }
+
+      sel.innerHTML = '<option value="">— Selecciona una matrícula —</option>';
+      res.lista.forEach(function(m) {
+        var opt = document.createElement("option");
+        opt.value = m; opt.textContent = m;
+        sel.appendChild(opt);
+      });
+
+      hint.textContent = res.lista.length + " matrícula(s) cargada(s)";
+      setTimeout(function(){ hint.textContent = ""; }, 3000);
+    })
+    .catch(function(err) {
+      document.getElementById("tractora").innerHTML = '<option value="">Sin conexión</option>';
+      mostrarSysError("No se pudo conectar con el servidor: " + err.message);
+    });
+
+
+  // ── Fecha final siempre > fecha inicial ──────────────────
+  document.getElementById("fechaInicio").addEventListener("change", function() {
+    var fi  = document.getElementById("fechaFinal");
+    fi.min  = this.value;                      // bloquea fechas anteriores
+    if (fi.value && fi.value < this.value) {   // si ya había una fecha menor, la borra
+      fi.value = "";
+      toast("La fecha final se ha borrado porque era anterior al inicio", "error");
+    }
+  });
+
+
+  // ── Autocomplete CÓDIGO → NOMBRE ─────────────────────────
+  var timeoutBusqueda;
+
+  document.getElementById("codigo").addEventListener("input", function() {
+    var valor  = this.value.trim();
+    var hint   = document.getElementById("hint-codigo");
+    var nombre = document.getElementById("nombre");
+
+    clearTimeout(timeoutBusqueda);
+
+    if (!valor) {
+      nombre.value     = "";
+      hint.textContent = "";
+      hint.className   = "hint";
+      return;
+    }
+
+    hint.textContent = "Buscando…";
+    hint.className   = "hint info";
+
+    timeoutBusqueda = setTimeout(function() {
+      apiGet({ action: "trabajador", codigo: valor })
+        .then(function(res) {
+          if (!res.ok) {
+            hint.textContent = "⚠ " + res.error;
+            hint.className   = "hint err";
+            return;
+          }
+          if (res.nombre) {
+            nombre.value     = res.nombre;
+            hint.textContent = "✓ Trabajador encontrado";
+            hint.className   = "hint ok";
+          } else {
+            nombre.value     = "";
+            hint.textContent = "✗ Código no encontrado";
+            hint.className   = "hint err";
+          }
+        })
+        .catch(function(err) {
+          hint.textContent = "⚠ Sin conexión";
+          hint.className   = "hint err";
+        });
+    }, 400);
+  });
+
+
+  // ── Enviar formulario ────────────────────────────────────
+  function enviarFormulario() {
+    var codigo      = document.getElementById("codigo").value.trim();
+    var nombre      = document.getElementById("nombre").value.trim();
+    var tractora    = document.getElementById("tractora").value;
+    var fechaInicio = document.getElementById("fechaInicio").value;
+    var fechaFinal  = document.getElementById("fechaFinal").value;
+    var donde       = document.getElementById("donde").value.trim();
+    var reglRadio   = document.querySelector('input[name="reglamentario"]:checked');
+
+    if (!codigo)             return toast("Introduce el código", "error");
+    if (!nombre)             return toast("Código no válido o no encontrado", "error");
+    if (!tractora)           return toast("Selecciona una tractora", "error");
+    if (!fechaInicio)        return toast("Indica la fecha de inicio", "error");
+    if (!fechaFinal)         return toast("Indica la fecha final", "error");
+    if (fechaFinal < fechaInicio) return toast("La fecha final no puede ser anterior al inicio", "error");
+    if (!donde)              return toast("Indica el lugar del trabajo", "error");
+    if (!reglRadio)          return toast("Selecciona si es reglamentario", "error");
+
+    var btn = document.getElementById("btnEnviar");
+    btn.disabled    = true;
+    btn.textContent = "Enviando…";
+
+    apiPost({
+      codigo: codigo, nombre: nombre, tractora: tractora,
+      fechaInicio: fechaInicio, fechaFinal: fechaFinal,
+      donde: donde, reglamentario: reglRadio.value
+    })
+    .then(function(res) {
+      btn.disabled    = false;
+      btn.textContent = "Enviar registro";
+      if (res.ok) {
+        toast("✅ Registro guardado correctamente", "success");
+        limpiarFormulario();
+      } else {
+        toast("❌ Error: " + res.error, "error");
+      }
+    })
+    .catch(function(err) {
+      btn.disabled    = false;
+      btn.textContent = "Enviar registro";
+      toast("❌ Sin conexión con el servidor", "error");
+    });
+  }
+
+
+  // ── Limpiar ───────────────────────────────────────────────
+  function limpiarFormulario() {
+    ["codigo","nombre","fechaInicio","fechaFinal","donde"].forEach(function(id){
+      document.getElementById(id).value = "";
+    });
+    document.getElementById("tractora").value = "";
+    document.querySelectorAll('input[name="reglamentario"]')
+            .forEach(function(r){ r.checked = false; });
+    document.getElementById("hint-codigo").textContent = "";
+    document.getElementById("hint-codigo").className  = "hint";
+  }
+
+  function mostrarSysError(msg) {
+    var el = document.getElementById("sysError");
+    el.textContent = "⚠ " + msg;
+    el.classList.add("show");
+  }
+
+  function toast(msg, tipo) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className   = "toast show " + (tipo || "");
+    setTimeout(function(){ t.className = "toast"; }, 3500);
+  }
+</script>
+</body>
+</html>
